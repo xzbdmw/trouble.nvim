@@ -58,7 +58,7 @@ end
 ---@param msg string|string[]
 ---@param opts? NotifyOpts
 function M.warn(msg, opts)
-  M.notify(msg, vim.tbl_extend("keep", { level = vim.log.levels.WARN }, opts or {}))
+  M.notify(msg, vim.tbl_extend("keep", { level = vim.log.levels.INFO }, opts or {}))
 end
 
 ---@param msg string|string[]

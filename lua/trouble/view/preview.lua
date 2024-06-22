@@ -37,6 +37,7 @@ function M.create(item, opts)
   local buf = item.buf or vim.fn.bufnr(item.filename)
 
   if item.filename and vim.fn.isdirectory(item.filename) == 1 then
+    vim.b[buf].filename = item.filename
     return
   end
 
@@ -51,6 +52,7 @@ function M.create(item, opts)
         return
       end
       vim.api.nvim_buf_set_lines(buf, 0, -1, false, lines)
+      vim.b[buf].filename = item.filename
       local ft = item:get_ft(buf)
       if ft then
         local lang = vim.treesitter.language.get_lang(ft)
@@ -71,6 +73,7 @@ function M.create(item, opts)
     end
   end
 
+  vim.diagnostic.show(nil, buf, nil, nil)
   return buf
 end
 
@@ -93,6 +96,7 @@ function M.open(view, item, opts)
 
     M.preview = M.preview_win(buf, view)
 
+    require("guess-indent").set_from_buffer("trouble", buf)
     M.preview.buf = buf
   end
   M.preview.item = item
@@ -132,6 +136,18 @@ function M.open(view, item, opts)
     end
   end)
 
+  _G.win_view = vim.api.nvim_win_call(M.preview.win, vim.fn.winsaveview)
+  vim.defer_fn(function()
+    ---@diagnostic disable-next-line: undefined-field
+    pcall(_G.indent_update, M.preview.win)
+    require("treesitter-context").context_force_update(M.preview.buf, M.preview.win, true)
+    vim.defer_fn(function()
+      ---@diagnostic disable-next-line: undefined-field
+      pcall(_G.update_indent, true, M.preview.win)
+      ---@diagnostic disable-next-line: undefined-field
+      pcall(_G.indent_update, M.preview.win)
+    end, 20)
+  end, 40)
   return item
 end
 

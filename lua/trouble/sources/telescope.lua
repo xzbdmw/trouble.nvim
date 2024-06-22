@@ -95,7 +95,7 @@ function M.add(prompt_bufnr, opts)
   -- Item.add_text(M.items, { mode = "after" })
 
   vim.schedule(function()
-    require("telescope.actions").close(prompt_bufnr)
+    -- require("telescope.actions").close(prompt_bufnr)
     opts = opts or {}
     if type(opts) == "string" then
       opts = { mode = opts }

@@ -237,6 +237,7 @@ end
 ---@param item? trouble.Item
 ---@param opts? {split?: boolean, vsplit?:boolean}
 function M:jump(item, opts)
+  require("treesitter-context").close_all()
   opts = opts or {}
   item = item or self:at().item
   vim.schedule(function()
@@ -383,19 +384,29 @@ function M:move(opts)
     todo = math.abs(todo)
   elseif opts.down then
     from = cursor[1] + 1
+    if from == to + 1 then
+      from = 1
+    end
   elseif opts.up then
     from = cursor[1] - 1
     to = 1
   end
 
-  for row = from, to, from > to and -1 or 1 do
+  -- local parent_row = vim.api.nvim_win_get_cursor(0)[1]
+  for row = from, to + 1, from > to and -1 or 1 do
     local info = self.renderer:at(row)
     if info.item and info.first_line then
       todo = todo - 1
       if todo == 0 then
         vim.api.nvim_win_set_cursor(self.win.win, { row, cursor[2] })
         if opts.jump then
+          -- local previous_info = row > 1 and self.renderer:at(row - 1)
+          -- local parent_row = vim.api.nvim_win_get_cursor(0)[1]
+          -- if previous_info and filename == info.item.filename and parent_row < previous_info.item.pos[1] then
+          --   self:jump(previous_info.item)
+          -- else
           self:jump(info.item)
+          -- end
         end
         break
       end
@@ -732,7 +743,9 @@ function M:follow()
   if cursor then
     -- make sure the cursorline is visible
     vim.wo[self.win.win].cursorline = true
-    vim.api.nvim_win_set_cursor(self.win.win, cursor)
+    pcall(function()
+      vim.api.nvim_win_set_cursor(self.win.win, cursor)
+    end)
     return true
   end
 end

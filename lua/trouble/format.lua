@@ -81,7 +81,9 @@ M.formatters = {
       if config.signs == nil or type(config.signs) == "boolean" then
         return { text = sign and sign.text or name:sub(1, 1), hl = "DiagnosticSign" .. name }
       end
-      local signs = config.signs or {}
+      local signs = {
+        text = { " ", " ", " ", " " },
+      }
       if type(signs) == "function" then
         signs = signs(0, 0) --[[@as vim.diagnostic.Opts.Signs]]
       end

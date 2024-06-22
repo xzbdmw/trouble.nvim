@@ -5,8 +5,8 @@ local M = {}
 -- stylua: ignore
 M.colors = {
   -- General
-  Normal            = "NormalFloat",
-  NormalNC          = "NormalFloat",
+  Normal            = "Normal",
+  NormalNC          = "Normal",
   Text              = "Normal",
   Preview           = "Visual",
 

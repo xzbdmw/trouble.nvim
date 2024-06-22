@@ -55,7 +55,7 @@ local split_commands = {
   editor = {
     top = "topleft",
     right = "vertical botright",
-    bottom = "botright",
+    -- bottom = "botright",
     left = "vertical topleft",
   },
   win = {
@@ -97,10 +97,7 @@ local defaults = {
     filetype = "trouble",
     buftype = "nofile",
   },
-  wo = {
-    winbar = "",
-    winblend = 0,
-  },
+  wo = {},
 }
 
 M.FOLDS = {
@@ -127,7 +124,7 @@ local minimal = {
     winbar = "",
     statuscolumn = "",
     winfixheight = true,
-    winfixwidth = true,
+    -- winfixwidth = true,
     winhighlight = "Normal:TroubleNormal,NormalNC:TroubleNormalNC,EndOfBuffer:TroubleNormal",
     wrap = false,
   },
@@ -158,6 +155,7 @@ function M.new(opts)
     opts.type = "float"
     opts.relative = "win"
     opts.position = { 0, 0 }
+    opts.zindex = 20
     opts.size = { width = 1, height = 1 }
     opts.wo.winhighlight = "Normal:Normal"
   end
@@ -165,6 +163,75 @@ function M.new(opts)
   return self
 end
 
+local function set_winbar(buf, win)
+  pcall(function()
+    local path
+    local cwd
+    local filename
+    local absolute_path
+    vim.api.nvim_buf_call(buf, function()
+      cwd = vim.fn.getcwd(0, 0)
+      absolute_path = vim.b[buf].filename
+      filename = vim.fs.basename(absolute_path)
+      path = vim.fs.dirname(absolute_path)
+    end)
+    local devicons = require("nvim-web-devicons")
+    local icon, iconHighlight = devicons.get_icon(filename, filename:match("^.+%.(.+)$"), { default = true })
+    local statusline = require("arrow.statusline")
+    local arrow = statusline.text_for_statusline() -- Same, but with an bow and arrow icon ;D
+    local arrow_icon = ""
+    if arrow ~= "" then
+      arrow_icon = "󰣉"
+      icon = ""
+      arrow = " (" .. arrow .. ")"
+      iconHighlight = "ArrowIcon"
+    end
+    if filename ~= "" then
+      if not vim.startswith(absolute_path, cwd) then
+        vim.wo[win].winbar = " "
+          .. " "
+          .. "%#LibPath#"
+          .. path
+          .. "%#Comment#"
+          .. " => "
+          .. "%#"
+          .. iconHighlight
+          .. "#"
+          .. arrow_icon
+          .. icon
+          .. " %#WinbarFileName#"
+          .. filename
+          .. "%#"
+          .. iconHighlight
+          .. "#"
+          .. arrow
+          .. "%*"
+      else
+        vim.wo[win].winbar = " "
+          .. "%#NvimTreeFolderName#"
+          .. " "
+          .. string.sub(absolute_path, #cwd + 2, #absolute_path)
+          .. " => "
+          .. "%#"
+          .. iconHighlight
+          .. "#"
+          .. arrow_icon
+          .. icon
+          .. " %#WinbarFileName#"
+          .. filename
+          .. "%#"
+          .. iconHighlight
+          .. "#"
+          .. arrow
+          .. "%*"
+      end
+    elseif filename ~= "" then
+      vim.wo.winbar = "%#WinbarFileName#" .. filename .. "%*"
+    else
+      vim.wo.winbar = ""
+    end
+  end)
+end
 ---@param clear? boolean
 function M:augroup(clear)
   return vim.api.nvim_create_augroup("trouble.window." .. self.id, { clear = clear == true })
@@ -253,6 +320,7 @@ function M:check_alien()
 end
 
 function M:close()
+  require("treesitter-context").close_all()
   pcall(vim.api.nvim_win_close, self.win, true)
   self:augroup(true)
   self.win = nil
@@ -292,7 +360,8 @@ function M:mount_split(opts)
   local cmd = split_commands[opts.relative][opts.position]
   Util.noautocmd(function()
     vim.api.nvim_win_call(opts.win, function()
-      vim.cmd("silent noswapfile " .. cmd .. " " .. size .. "split")
+      local ccc = "silent noswapfile " .. " " .. 8 .. "split"
+      vim.cmd(ccc)
       vim.api.nvim_win_set_buf(0, self.buf)
       self.win = vim.api.nvim_get_current_win()
     end)
@@ -315,6 +384,7 @@ function M:mount_float(opts)
   config.row = math.abs(opts.position[1]) <= 1 and math.floor((parent_size.height - config.height) * opts.position[1])
     or opts.position[1]
   config.row = config.row < 0 and (parent_size.height + config.row) or config.row
+  config.row = config.row - 1
 
   config.col = math.abs(opts.position[2]) <= 1 and math.floor((parent_size.width - config.width) * opts.position[2])
     or opts.position[2]
@@ -324,6 +394,9 @@ function M:mount_float(opts)
   end
 
   self.win = vim.api.nvim_open_win(self.buf, false, config)
+  vim.schedule(function()
+    set_winbar(self.buf, self.win)
+  end)
 end
 
 function M:focus()

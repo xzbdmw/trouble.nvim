@@ -93,7 +93,16 @@ local M = {
       self:jump(ctx.item)
     end
   end,
-  -- Jump to the item if on an item, otherwise fold the node
+  tab = function(self, ctx)
+    if ctx.item then
+      self:jump(ctx.item)
+      require("treesitter-context").close_all()
+    elseif ctx.node then
+      local Preview = require("trouble.view.preview")
+      Preview:close()
+      require("config.utils").normal_tab()
+    end
+  end,
   jump = function(self, ctx)
     if ctx.item then
       self:jump(ctx.item)
