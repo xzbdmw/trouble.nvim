@@ -395,24 +395,21 @@ function M:move(opts)
     end
   elseif opts.up then
     from = cursor[1] - 1
-    to = 1
+    if from == 1 then
+      from = to + 1
+    else
+      to = 1
+    end
   end
 
-  -- local parent_row = vim.api.nvim_win_get_cursor(0)[1]
-  for row = from, to + 1, from > to and -1 or 1 do
+  for row = from, to, from > to and -1 or 1 do
     local info = self.renderer:at(row)
     if info.item and info.first_line then
       todo = todo - 1
       if todo == 0 then
         vim.api.nvim_win_set_cursor(self.win.win, { row, cursor[2] })
         if opts.jump then
-          -- local previous_info = row > 1 and self.renderer:at(row - 1)
-          -- local parent_row = vim.api.nvim_win_get_cursor(0)[1]
-          -- if previous_info and filename == info.item.filename and parent_row < previous_info.item.pos[1] then
-          --   self:jump(previous_info.item)
-          -- else
           self:jump(info.item)
-          -- end
         end
         break
       end
