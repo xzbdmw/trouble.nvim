@@ -237,7 +237,7 @@ end
 ---@param item? trouble.Item
 ---@param opts? {split?: boolean, vsplit?:boolean}
 function M:jump(item, opts)
-  if item.buf ~= vim.api.nvim_get_current_buf() then
+  if item and (item.buf ~= vim.api.nvim_get_current_buf()) then
     vim.g.gd = true
     vim.defer_fn(function()
       vim.g.gd = false
