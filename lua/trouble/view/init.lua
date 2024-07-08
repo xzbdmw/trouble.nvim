@@ -34,7 +34,7 @@ M._auto = {}
 ---@type table<string, trouble.Render.Location>
 M._last = {}
 
-M.MOVING_DELAY = 4000
+M.MOVING_DELAY = 1000
 
 local uv = vim.loop or vim.uv
 
@@ -370,6 +370,95 @@ function M:map(key, action)
       this:action(action)
     end
   end, { desc = action.desc, mode = action.mode })
+end
+
+---@param opts? {idx?: number, up?:number, down?:number, jump?:boolean}
+function M:move_to_prev_in_main_window(opts)
+  self.moving:start(M.MOVING_DELAY, 0, function() end)
+  if not self.win:valid() then -- trouble is closed
+    return
+  end
+  local cursor = vim.api.nvim_win_get_cursor(self.win.win)
+  local current_win = vim.api.nvim_get_current_win()
+  if current_win == self.win.win then -- inside the trouble window
+    return
+  end
+  local ctx = { opts = self.opts, main = self:main() }
+  local fname = vim.api.nvim_buf_get_name(ctx.main.buf or 0)
+
+  local main_row, main_col = unpack(vim.api.nvim_win_get_cursor(0))
+
+  local function reverse_list(list)
+    local reversed = {}
+    for i = #list, 1, -1 do
+      table.insert(reversed, list[i])
+    end
+    return reversed
+  end
+
+  local hit = false
+  local rev = reverse_list(self.renderer._locations)
+  for row, l in pairs(rev) do
+    row = #rev - row + 1
+    if l.item then
+      local filename = l.item.filename
+      if filename == fname then
+        local s_pos = l.item.pos
+        local e_pos = l.item.end_pos
+        local s_row, s_col, e_row, e_col = s_pos[1], s_pos[2], e_pos[1], e_pos[2]
+        if s_row < main_row or (s_row == main_row and s_col < main_col) then
+          hit = true
+          vim.api.nvim_win_set_cursor(self.win.win, { row, cursor[2] })
+          local info = self.renderer:at(row)
+          self:jump(info.item)
+          return
+        end
+      end
+    end
+  end
+  if hit == false then
+    self:move(opts)
+    return
+  end
+end
+---@param opts? {idx?: number, up?:number, down?:number, jump?:boolean}
+function M:move_to_next_in_main_window(opts)
+  self.moving:start(M.MOVING_DELAY, 0, function() end)
+  if not self.win:valid() then -- trouble is closed
+    return
+  end
+  local cursor = vim.api.nvim_win_get_cursor(self.win.win)
+  local current_win = vim.api.nvim_get_current_win()
+  if current_win == self.win.win then -- inside the trouble window
+    return
+  end
+  local ctx = { opts = self.opts, main = self:main() }
+  local fname = vim.api.nvim_buf_get_name(ctx.main.buf or 0)
+
+  local main_row, main_col = unpack(vim.api.nvim_win_get_cursor(0))
+
+  local hit = false
+  for row, l in pairs(self.renderer._locations) do
+    if l.item then
+      local filename = l.item.filename
+      if filename == fname then
+        local s_pos = l.item.pos
+        local e_pos = l.item.end_pos
+        local s_row, s_col, e_row, e_col = s_pos[1], s_pos[2], e_pos[1], e_pos[2]
+        if s_row > main_row or (s_row == main_row and s_col > main_col) then
+          hit = true
+          vim.api.nvim_win_set_cursor(self.win.win, { row, cursor[2] })
+          local info = self.renderer:at(row)
+          self:jump(info.item)
+          return
+        end
+      end
+    end
+  end
+  if hit == false then
+    self:move(opts)
+    return
+  end
 end
 
 ---@param opts? {idx?: number, up?:number, down?:number, jump?:boolean}

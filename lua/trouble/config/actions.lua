@@ -75,6 +75,12 @@ local M = {
   next = function(self, ctx)
     self:move({ down = vim.v.count1, jump = ctx.opts.jump })
   end,
+  main_next = function(self, ctx)
+    self:move_to_next_in_main_window({ down = vim.v.count1, jump = ctx.opts.jump })
+  end,
+  main_prev = function(self, ctx)
+    self:move_to_prev_in_main_window({ up = vim.v.count1, jump = ctx.opts.jump })
+  end,
   -- Go to the previous item
   prev = function(self, ctx)
     self:move({ up = vim.v.count1, jump = ctx.opts.jump })
