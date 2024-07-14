@@ -445,7 +445,8 @@ function M:move_to_next_in_main_window(opts)
         local s_pos = l.item.pos
         local e_pos = l.item.end_pos
         local s_row, s_col, e_row, e_col = s_pos[1], s_pos[2], e_pos[1], e_pos[2]
-        if s_row > main_row or (s_row == main_row and s_col > main_col) then
+        local max_col = #vim.api.nvim_buf_get_lines(0, main_row - 1, main_row, false)[1] - 1
+        if s_row > main_row or (s_col <= max_col and (s_row == main_row and s_col > main_col)) then
           hit = true
           vim.api.nvim_win_set_cursor(self.win.win, { row, cursor[2] })
           local info = self.renderer:at(row)
