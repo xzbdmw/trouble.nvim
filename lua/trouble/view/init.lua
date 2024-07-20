@@ -258,7 +258,7 @@ function M:jump(item, opts)
     return
   end
 
-  item.buf = item.buf or vim.fn.bufadd(item.filename)
+  item.buf = (item.buf and vim.api.nvim_buf_is_valid(item.buf)) and item.buf or vim.fn.bufadd(item.filename)
 
   if not vim.api.nvim_buf_is_loaded(item.buf) then
     vim.fn.bufload(item.buf)
