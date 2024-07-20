@@ -334,6 +334,9 @@ function M:open()
   end
   self:close()
   self:mount()
+  vim.api.nvim_exec_autocmds("User", {
+    pattern = "TroubleOpen",
+  })
   return self
 end
 
