@@ -289,7 +289,14 @@ function M:jump(item, opts)
   vim.api.nvim_win_set_buf(win, item.buf)
   -- order of the below seems important with splitkeep=screen
   vim.api.nvim_set_current_win(win)
-  vim.api.nvim_win_set_cursor(win, item.pos)
+
+  local text = vim.api.nvim_buf_get_text(0, item.pos[1] - 1, item.pos[2], item.pos[1] - 1, item.pos[2] + 1, {})[1]
+  local col = item.pos[2]
+  if text == " " then
+    local a
+    a, col = vim.fn.getline(item.pos[1]):find("^%s*")
+  end
+  vim.api.nvim_win_set_cursor(win, { item.pos[1], col })
   vim.api.nvim_win_call(win, function()
     vim.cmd("norm! zzzv")
   end)
