@@ -243,7 +243,7 @@ function M:jump(item, opts)
       vim.g.gd = false
     end, 30)
   end
-  require("treesitter-context").close_all()
+  -- require("treesitter-context").close_all()
   opts = opts or {}
   item = item or self:at().item
   vim.schedule(function()

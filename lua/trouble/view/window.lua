@@ -320,7 +320,9 @@ function M:check_alien()
 end
 
 function M:close()
-  require("treesitter-context").close_all()
+  if vim.api.nvim_get_current_win() ~= Main._main.win then
+    require("treesitter-context").close_all()
+  end
   pcall(vim.api.nvim_win_close, self.win, true)
   self:augroup(true)
   self.win = nil
