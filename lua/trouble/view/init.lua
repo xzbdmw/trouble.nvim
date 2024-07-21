@@ -407,17 +407,23 @@ function M:move_to_prev_in_main_window(opts)
   local rev = reverse_list(self.renderer._locations)
   for row, l in pairs(rev) do
     row = #rev - row + 1
+    local item = self.renderer:at(row).item
     if l.item then
       local filename = l.item.filename
       if filename == fname then
         local s_pos = l.item.pos
         local e_pos = l.item.end_pos
         local s_row, s_col, e_row, e_col = s_pos[1], s_pos[2], e_pos[1], e_pos[2]
-        if s_row < main_row or (s_row == main_row and s_col < main_col) then
+        local text = vim.api.nvim_buf_get_text(0, item.pos[1] - 1, item.pos[2], item.pos[1] - 1, item.pos[2] + 1, {})[1]
+        local col = item.pos[2]
+        if text == " " then
+          local a
+          a, e_col = vim.fn.getline(item.pos[1]):find("^%s*")
+        end
+        if s_row < main_row or (s_row == main_row and e_col < main_col) then
           hit = true
           vim.api.nvim_win_set_cursor(self.win.win, { row, cursor[2] })
-          local info = self.renderer:at(row)
-          self:jump(info.item)
+          self:jump(item)
           return
         end
       end
