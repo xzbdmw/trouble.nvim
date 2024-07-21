@@ -418,9 +418,9 @@ function M:move_to_prev_in_main_window(opts)
         local col = item.pos[2]
         if text == " " then
           local a
-          a, e_col = vim.fn.getline(item.pos[1]):find("^%s*")
+          a, s_col = vim.fn.getline(item.pos[1]):find("^%s*")
         end
-        if s_row < main_row or (s_row == main_row and e_col < main_col) then
+        if s_row < main_row or (s_row == main_row and s_col < main_col) then
           hit = true
           vim.api.nvim_win_set_cursor(self.win.win, { row, cursor[2] })
           self:jump(item)
