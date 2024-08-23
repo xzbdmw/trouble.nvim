@@ -35,6 +35,8 @@ M._auto = {}
 M._last = {}
 
 M.MOVING_DELAY = 1000
+M.ns = vim.api.nvim_create_namespace("trouble.highlight")
+M.count_ns = vim.api.nvim_create_namespace("trouble.count_virt_text")
 
 local uv = vim.loop or vim.uv
 
@@ -300,6 +302,11 @@ function M:jump(item, opts)
   vim.api.nvim_win_call(win, function()
     vim.cmd("norm! zzzv")
   end)
+  if require("config.utils").has_namespace("trouble.highlight") then
+    self:update_cur_highlight()
+  else
+    self:highlight()
+  end
   return item
 end
 
@@ -623,6 +630,10 @@ function M:close()
   end
   Preview.close()
   self.win:close()
+  for _, buf in ipairs(vim.api.nvim_list_bufs()) do
+    pcall(vim.api.nvim_buf_clear_namespace, buf, self.ns, 0, -1)
+    pcall(vim.api.nvim_buf_clear_namespace, buf, self.count_ns, 0, -1)
+  end
   return self
 end
 
@@ -721,6 +732,130 @@ function M:format(template, data)
   return Format.format(template, { item = data, opts = self.opts })
 end
 
+function M:update_virt_count()
+  local cur_line, cur_col = unpack(vim.api.nvim_win_get_cursor(0))
+  local fname = vim.api.nvim_buf_get_name(0)
+  local count
+  local index
+  local find_first_leaf = false
+  local total_count = self:count()
+  local hit = false
+  for row, l in pairs(self.renderer._locations) do
+    if l.item then
+      local filename = l.item.filename
+      if filename == fname then
+        if not find_first_leaf then
+          find_first_leaf = true
+          index = 1
+        else
+          index = index + 1
+        end
+        ---@diagnostic disable-next-line: invisible
+        count = l.node.parent._count
+        local s_pos = l.item.pos
+        local e_pos = l.item.end_pos
+        local s_row, s_col, e_row, e_col = s_pos[1], s_pos[2], e_pos[1], e_pos[2]
+        if s_row == cur_line and s_col <= cur_col and e_col >= cur_col then
+          -- I do not set follow in first open, so do not show virt_text when not in right position
+          hit = true
+          break
+        end
+      end
+    end
+  end
+  vim.api.nvim_buf_clear_namespace(0, self.count_ns, 0, -1)
+  if count ~= nil and index ~= nil and total_count ~= nil and hit then
+    vim.api.nvim_buf_set_extmark(0, self.count_ns, cur_line - 1, 0, {
+      virt_text = {
+        {
+          "[" .. index .. "/" .. count .. "]" .. " [" .. total_count .. "]",
+          "illuminatedH",
+        },
+      },
+      virt_text_pos = "eol",
+    })
+  end
+end
+
+function M:update_cur_highlight()
+  if _G.pre_gitsigns_qf_operation ~= "" then
+    return
+  end
+  local cur_line, cur_col = unpack(vim.api.nvim_win_get_cursor(0))
+
+  local all_extmarks = vim.api.nvim_buf_get_extmarks(0, self.ns, 0, -1, { details = true })
+  for _, extmark in ipairs(all_extmarks) do
+    local id, s_row, s_col, details = unpack(extmark)
+    if details.hl_group == "CurSearch" then
+      ---@diagnostic disable-next-line: param-type-mismatch
+      vim.api.nvim_buf_del_extmark(0, self.ns, id)
+      break
+    end
+  end
+
+  local extmarks = vim.api.nvim_buf_get_extmarks(0, self.ns, { cur_line - 1, 0 }, { cur_line, 0 }, { details = true })
+  for _, extmark in ipairs(extmarks) do
+    local id, s_row, s_col, details = unpack(extmark)
+    local e_row, e_col = details.end_row, details.end_col
+    if s_row + 1 == cur_line and s_col <= cur_col and e_col >= cur_col then
+      Util.set_extmark(0, self.ns, s_row, s_col, {
+        end_row = e_row,
+        end_col = e_col,
+        hl_group = "CurSearch",
+        hl_eol = true,
+        strict = false,
+        priority = 1501,
+      })
+    end
+  end
+  self:update_virt_count()
+end
+
+function M:highlight()
+  if _G.pre_gitsigns_qf_operation ~= "" then
+    return
+  end
+  local cur_line, cur_col = unpack(vim.api.nvim_win_get_cursor(0))
+  local fname = vim.api.nvim_buf_get_name(0)
+  for row, l in pairs(self.renderer._locations) do
+    if l.item then
+      local filename = l.item.filename
+      if filename == fname then
+        local s_pos = l.item.pos
+        local e_pos = l.item.end_pos
+        local s_row, s_col, e_row, e_col = s_pos[1], s_pos[2], e_pos[1], e_pos[2]
+        local hl
+        if s_row == cur_line and s_col <= cur_col and e_col >= cur_col then
+          if e_col == s_col then
+            vim.cmd("norm! mce")
+            e_col = vim.api.nvim_win_get_cursor(0)[2] + 1
+            vim.cmd("norm! `c")
+          end
+          hl = "CurSearch"
+        else
+          if e_col == s_col then
+            vim.cmd("norm! mc")
+            vim.api.nvim_win_set_cursor(0, { s_row, s_col })
+            vim.cmd("norm! e")
+            e_col = vim.api.nvim_win_get_cursor(0)[2] + 1
+            vim.cmd("norm! `c")
+          end
+          hl = "Search"
+        end
+        Util.set_extmark(0, self.ns, s_row - 1, s_col, {
+          end_row = e_row - 1,
+          end_col = e_col,
+          hl_group = hl,
+          hl_eol = true,
+          strict = false,
+          priority = 1500,
+        })
+      end
+    end
+  end
+  self:update_virt_count()
+end
+
 -- render the results
 function M:render()
   if not self.win:valid() then
@@ -771,7 +906,9 @@ function M:render()
   vim.api.nvim_win_call(self.win.win, function()
     vim.fn.winrestview(view)
   end)
-
+  vim.schedule(function()
+    self:highlight()
+  end)
   if self.opts.follow and self:follow() then
     return
   end
