@@ -786,7 +786,7 @@ function M:update_cur_highlight()
   local all_extmarks = vim.api.nvim_buf_get_extmarks(0, self.ns, 0, -1, { details = true })
   for _, extmark in ipairs(all_extmarks) do
     local id, s_row, s_col, details = unpack(extmark)
-    if details.hl_group == "CurSearch" then
+    if details.hl_group == "CurSearch" and #all_extmarks > 1 then
       ---@diagnostic disable-next-line: param-type-mismatch
       vim.api.nvim_buf_del_extmark(0, self.ns, id)
       break
