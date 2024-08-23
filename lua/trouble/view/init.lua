@@ -824,14 +824,14 @@ function M:highlight()
         local s_pos = l.item.pos
         local e_pos = l.item.end_pos
         local s_row, s_col, e_row, e_col = s_pos[1], s_pos[2], e_pos[1], e_pos[2]
-        local hl
+        local cur_instance
         if s_row == cur_line and s_col <= cur_col and e_col >= cur_col then
           if e_col == s_col then
             vim.cmd("norm! mce")
             e_col = vim.api.nvim_win_get_cursor(0)[2] + 1
             vim.cmd("norm! `c")
           end
-          hl = "CurSearch"
+          cur_instance = true
         else
           if e_col == s_col then
             vim.cmd("norm! mc")
@@ -840,16 +840,25 @@ function M:highlight()
             e_col = vim.api.nvim_win_get_cursor(0)[2] + 1
             vim.cmd("norm! `c")
           end
-          hl = "Search"
         end
         Util.set_extmark(0, self.ns, s_row - 1, s_col, {
           end_row = e_row - 1,
           end_col = e_col,
-          hl_group = hl,
+          hl_group = "Search",
           hl_eol = true,
           strict = false,
           priority = 1500,
         })
+        if cur_instance then
+          Util.set_extmark(0, self.ns, s_row - 1, s_col, {
+            end_row = e_row - 1,
+            end_col = e_col,
+            hl_group = "CurSearch",
+            hl_eol = true,
+            strict = false,
+            priority = 1600,
+          })
+        end
       end
     end
   end
