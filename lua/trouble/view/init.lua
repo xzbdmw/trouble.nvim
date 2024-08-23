@@ -754,8 +754,12 @@ function M:update_virt_count()
         count = l.node.parent._count
         local s_pos = l.item.pos
         local e_pos = l.item.end_pos
+
         local s_row, s_col, e_row, e_col = s_pos[1], s_pos[2], e_pos[1], e_pos[2]
-        if s_row == cur_line and s_col <= cur_col and e_col >= cur_col then
+        local col_the_same = s_col == e_col
+        local is_cursor_position = col_the_same and s_row == cur_line
+          or (s_row == cur_line and s_col <= cur_col and e_col >= cur_col)
+        if is_cursor_position then
           -- I do not set follow in first open, so do not show virt_text when not in right position
           hit = true
           break
@@ -825,7 +829,10 @@ function M:highlight()
         local e_pos = l.item.end_pos
         local s_row, s_col, e_row, e_col = s_pos[1], s_pos[2], e_pos[1], e_pos[2]
         local cur_instance
-        if s_row == cur_line and s_col <= cur_col and e_col >= cur_col then
+        local col_the_same = s_col == e_col
+        local is_cursor_position = col_the_same and s_row == cur_line
+          or (s_row == cur_line and s_col <= cur_col and e_col >= cur_col)
+        if is_cursor_position then
           if e_col == s_col then
             vim.cmd("norm! mce")
             e_col = vim.api.nvim_win_get_cursor(0)[2] + 1
