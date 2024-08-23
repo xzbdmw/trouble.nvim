@@ -27,7 +27,7 @@ M.config = {
       desc = "Quickfix List",
       events = {
         "QuickFixCmdPost",
-        { event = { "InsertLeave", "InsertEnter", "TextChanged" }, main = true },
+        { event = { "InsertLeave", "TextChanged" }, main = true },
       },
       source = "qf.qflist",
       groups = {
