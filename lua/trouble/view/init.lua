@@ -769,10 +769,16 @@ function M:update_virt_count()
   end
   vim.api.nvim_buf_clear_namespace(0, self.count_ns, 0, -1)
   if count ~= nil and index ~= nil and total_count ~= nil and hit then
+    local virt_text
+    if count == total_count then
+      virt_text = "[" .. index .. "/" .. count .. "]"
+    else
+      virt_text = "[" .. index .. "/" .. count .. "]" .. " [" .. total_count .. "]"
+    end
     vim.api.nvim_buf_set_extmark(0, self.count_ns, cur_line - 1, 0, {
       virt_text = {
         {
-          "[" .. index .. "/" .. count .. "]" .. " [" .. total_count .. "]",
+          virt_text,
           "illuminatedH",
         },
       },
