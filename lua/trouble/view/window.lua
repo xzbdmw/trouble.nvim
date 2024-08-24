@@ -326,6 +326,10 @@ function M:close()
   pcall(vim.api.nvim_win_close, self.win, true)
   self:augroup(true)
   self.win = nil
+  vim.api.nvim_exec_autocmds("User", {
+    pattern = "TroubleClose",
+    data = require("trouble.api").last_mode,
+  })
 end
 
 function M:open()
@@ -336,6 +340,7 @@ function M:open()
   self:mount()
   vim.api.nvim_exec_autocmds("User", {
     pattern = "TroubleOpen",
+    data = require("trouble.api").last_mode,
   })
   return self
 end
