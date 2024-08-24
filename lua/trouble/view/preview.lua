@@ -4,6 +4,9 @@ local Util = require("trouble.util")
 local M = {}
 M.preview = nil ---@type {item:trouble.Item, win:number, buf: number, close:fun()}?
 
+M.ns = vim.api.nvim_create_namespace("trouble.preview_highlight")
+M.count_ns = vim.api.nvim_create_namespace("trouble.preview_count_virt_text")
+
 function M.is_open()
   return M.preview ~= nil
 end
@@ -24,6 +27,10 @@ function M.close()
   end
   Render.reset(preview.buf)
   preview.close()
+  for _, buf in ipairs(vim.api.nvim_list_bufs()) do
+    pcall(vim.api.nvim_buf_clear_namespace, buf, M.ns, 0, -1)
+    pcall(vim.api.nvim_buf_clear_namespace, buf, M.count_ns, 0, -1)
+  end
 end
 
 --- Create a preview buffer for an item.
@@ -98,6 +105,7 @@ function M.open(view, item, opts)
 
     require("guess-indent").set_from_buffer("trouble", buf)
     M.preview.buf = buf
+    view:highlight(buf, M.preview.win, item.filename, M.ns, M.count_ns)
   end
   M.preview.item = item
 
@@ -105,9 +113,6 @@ function M.open(view, item, opts)
 
   -- make sure we highlight at least one character
   local end_pos = { item.end_pos[1], item.end_pos[2] }
-  if end_pos[1] == item.pos[1] and end_pos[2] == item.pos[2] then
-    end_pos[2] = end_pos[2] + 1
-  end
 
   -- highlight the line
   Util.set_extmark(M.preview.buf, Render.ns, item.pos[1] - 1, 0, {
@@ -118,15 +123,6 @@ function M.open(view, item, opts)
     priority = 150,
   })
 
-  -- highlight the range
-  Util.set_extmark(M.preview.buf, Render.ns, item.pos[1] - 1, item.pos[2], {
-    end_row = end_pos[1] - 1,
-    end_col = end_pos[2],
-    hl_group = "TroublePreview",
-    strict = false,
-    priority = 160,
-  })
-
   -- no autocmds should be triggered. So LSP's etc won't try to attach in the preview
   Util.noautocmd(function()
     if pcall(vim.api.nvim_win_set_cursor, M.preview.win, item.pos) then
@@ -135,6 +131,12 @@ function M.open(view, item, opts)
       end)
     end
   end)
+
+  if not require("config.utils").has_namespace("trouble.preview_highlight") then
+    view:update_cur_highlight(M.preview.buf, M.preview.win, M.preview.item.filename, M.ns, M.count_ns)
+  else
+    view:highlight(M.preview.buf, M.preview.win, M.preview.item.filename, M.ns, M.count_ns)
+  end
 
   _G.win_view = vim.api.nvim_win_call(M.preview.win, vim.fn.winsaveview)
   vim.defer_fn(function()

@@ -35,6 +35,7 @@ M._auto = {}
 M._last = {}
 
 M.MOVING_DELAY = 1000
+
 M.ns = vim.api.nvim_create_namespace("trouble.highlight")
 M.count_ns = vim.api.nvim_create_namespace("trouble.count_virt_text")
 
@@ -732,9 +733,12 @@ function M:format(template, data)
   return Format.format(template, { item = data, opts = self.opts })
 end
 
-function M:update_virt_count()
-  local cur_line, cur_col = unpack(vim.api.nvim_win_get_cursor(0))
-  local fname = vim.api.nvim_buf_get_name(0)
+function M:update_virt_count(buf, win, fname, count_ns)
+  buf = buf or 0
+  win = win or 0
+  fname = fname or vim.api.nvim_buf_get_name(buf)
+  count_ns = count_ns or self.count_ns
+  local cur_line, cur_col = unpack(vim.api.nvim_win_get_cursor(win))
   local count
   local index
   local find_first_leaf = false
@@ -767,48 +771,47 @@ function M:update_virt_count()
       end
     end
   end
-  vim.api.nvim_buf_clear_namespace(0, self.count_ns, 0, -1)
+  vim.api.nvim_buf_clear_namespace(buf, self.count_ns, 0, -1)
   if count ~= nil and index ~= nil and total_count ~= nil and hit then
     local virt_text
     if count == total_count then
-      virt_text = "[" .. index .. "/" .. count .. "]"
+      virt_text = { { "[" .. index .. "/" .. count .. "]", "illuminatedH" } }
     else
-      virt_text = "[" .. index .. "/" .. count .. "]" .. " [" .. total_count .. "]"
+      virt_text = { { "[" .. index .. "/" .. count .. "]", "illuminatedH" }, { " " .. total_count, "CmpGhostText" } }
     end
-    vim.api.nvim_buf_set_extmark(0, self.count_ns, cur_line - 1, 0, {
-      virt_text = {
-        {
-          virt_text,
-          "illuminatedH",
-        },
-      },
+    vim.api.nvim_buf_set_extmark(buf, self.count_ns, cur_line - 1, 0, {
+      virt_text = virt_text,
       virt_text_pos = "eol",
+      hl_mode = "combine",
     })
   end
 end
 
-function M:update_cur_highlight()
+function M:update_cur_highlight(buf, win, fname, ns, count_ns)
+  buf = buf or 0
+  win = win or 0
+  ns = ns or self.ns
   if _G.pre_gitsigns_qf_operation ~= "" then
     return
   end
-  local cur_line, cur_col = unpack(vim.api.nvim_win_get_cursor(0))
+  local cur_line, cur_col = unpack(vim.api.nvim_win_get_cursor(win))
 
-  local all_extmarks = vim.api.nvim_buf_get_extmarks(0, self.ns, 0, -1, { details = true })
+  local all_extmarks = vim.api.nvim_buf_get_extmarks(buf, ns, 0, -1, { details = true })
   for _, extmark in ipairs(all_extmarks) do
     local id, s_row, s_col, details = unpack(extmark)
     if details.hl_group == "CurSearch" and #all_extmarks > 1 then
       ---@diagnostic disable-next-line: param-type-mismatch
-      vim.api.nvim_buf_del_extmark(0, self.ns, id)
+      vim.api.nvim_buf_del_extmark(buf, ns, id)
       break
     end
   end
 
-  local extmarks = vim.api.nvim_buf_get_extmarks(0, self.ns, { cur_line - 1, 0 }, { cur_line, 0 }, { details = true })
+  local extmarks = vim.api.nvim_buf_get_extmarks(buf, ns, { cur_line - 1, 0 }, { cur_line, 0 }, { details = true })
   for _, extmark in ipairs(extmarks) do
     local id, s_row, s_col, details = unpack(extmark)
     local e_row, e_col = details.end_row, details.end_col
     if s_row + 1 == cur_line and s_col <= cur_col and e_col >= cur_col then
-      Util.set_extmark(0, self.ns, s_row, s_col, {
+      Util.set_extmark(buf, ns, s_row, s_col, {
         end_row = e_row,
         end_col = e_col,
         hl_group = "CurSearch",
@@ -818,15 +821,19 @@ function M:update_cur_highlight()
       })
     end
   end
-  self:update_virt_count()
+  self:update_virt_count(buf, win, fname, count_ns)
 end
 
-function M:highlight()
+function M:highlight(buf, win, fname, hl_ns, count_ns)
+  hl_ns = hl_ns or self.ns
+  count_ns = count_ns or self.count_ns
+  buf = buf or 0
+  win = win or 0
   if _G.pre_gitsigns_qf_operation ~= "" then
     return
   end
-  local cur_line, cur_col = unpack(vim.api.nvim_win_get_cursor(0))
-  local fname = vim.api.nvim_buf_get_name(0)
+  local cur_line, cur_col = unpack(vim.api.nvim_win_get_cursor(win))
+  fname = fname or vim.api.nvim_buf_get_name(buf)
   for row, l in pairs(self.renderer._locations) do
     if l.item then
       local filename = l.item.filename
@@ -840,21 +847,31 @@ function M:highlight()
           or (s_row == cur_line and s_col <= cur_col and e_col >= cur_col)
         if is_cursor_position then
           if e_col == s_col then
-            vim.cmd("norm! mce")
-            e_col = vim.api.nvim_win_get_cursor(0)[2] + 1
-            vim.cmd("norm! `c")
+            vim.api.nvim_win_call(win, function()
+              vim.cmd("norm! mce")
+            end)
+            e_col = vim.api.nvim_win_get_cursor(win)[2] + 1
+            vim.api.nvim_win_call(win, function()
+              vim.cmd("norm! `c")
+            end)
           end
           cur_instance = true
         else
           if e_col == s_col then
-            vim.cmd("norm! mc")
-            vim.api.nvim_win_set_cursor(0, { s_row, s_col })
-            vim.cmd("norm! e")
-            e_col = vim.api.nvim_win_get_cursor(0)[2] + 1
-            vim.cmd("norm! `c")
+            vim.api.nvim_win_call(win, function()
+              vim.cmd("norm! mc")
+            end)
+            vim.api.nvim_win_set_cursor(win, { s_row, s_col })
+            vim.api.nvim_win_call(win, function()
+              vim.cmd("norm! e")
+            end)
+            e_col = vim.api.nvim_win_get_cursor(win)[2] + 1
+            vim.api.nvim_win_call(win, function()
+              vim.cmd("norm! `c")
+            end)
           end
         end
-        Util.set_extmark(0, self.ns, s_row - 1, s_col, {
+        Util.set_extmark(buf, hl_ns, s_row - 1, s_col, {
           end_row = e_row - 1,
           end_col = e_col,
           hl_group = "Search",
@@ -863,7 +880,7 @@ function M:highlight()
           priority = 1500,
         })
         if cur_instance then
-          Util.set_extmark(0, self.ns, s_row - 1, s_col, {
+          Util.set_extmark(buf, hl_ns, s_row - 1, s_col, {
             end_row = e_row - 1,
             end_col = e_col,
             hl_group = "CurSearch",
@@ -875,7 +892,7 @@ function M:highlight()
       end
     end
   end
-  self:update_virt_count()
+  self:update_virt_count(buf, win, fname, count_ns)
 end
 
 -- render the results
@@ -928,9 +945,7 @@ function M:render()
   vim.api.nvim_win_call(self.win.win, function()
     vim.fn.winrestview(view)
   end)
-  vim.schedule(function()
-    self:highlight()
-  end)
+  self:highlight()
   if self.opts.follow and self:follow() then
     return
   end
