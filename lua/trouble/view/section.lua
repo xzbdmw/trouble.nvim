@@ -52,12 +52,6 @@ end
 
 ---@param opts? {update?: boolean}
 function M:refresh(opts)
-  -- if self.section.source ~= "lsp.document_symbols" then
-  --   Util.debug("Section Refresh", {
-  --     id = self.id,
-  --     source = self.section.source,
-  --   })
-  -- end
   self.fetching = true
   return Promise.new(function(resolve)
     self:main_call(function(main)

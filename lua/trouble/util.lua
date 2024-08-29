@@ -149,6 +149,11 @@ function M.throttle(fn, opts)
         if not args then
           return M.debug("Empty args. This should not happen.")
         end
+
+        local mode = vim.api.nvim_get_mode().mode
+        if mode ~= "n" then
+          return
+        end
         fn(vim.F.unpack_len(args))
         args = nil
       end, function(err)
