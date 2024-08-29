@@ -945,6 +945,8 @@ function M:render()
   vim.api.nvim_win_call(self.win.win, function()
     vim.fn.winrestview(view)
   end)
+  pcall(vim.api.nvim_buf_clear_namespace, 0, self.ns, 0, -1)
+  pcall(vim.api.nvim_buf_clear_namespace, 0, self.count_ns, 0, -1)
   self:highlight()
   if self.opts.follow and self:follow() then
     return
