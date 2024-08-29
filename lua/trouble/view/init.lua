@@ -875,7 +875,7 @@ function M:highlight(buf, win, fname, hl_ns, count_ns)
           end_row = e_row - 1,
           end_col = e_col,
           hl_group = "Search",
-          hl_eol = true,
+          hl_eol = false,
           strict = false,
           priority = 1500,
         })
@@ -884,7 +884,7 @@ function M:highlight(buf, win, fname, hl_ns, count_ns)
             end_row = e_row - 1,
             end_col = e_col,
             hl_group = "CurSearch",
-            hl_eol = true,
+            hl_eol = false,
             strict = false,
             priority = 1600,
           })
