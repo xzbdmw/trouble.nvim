@@ -834,6 +834,9 @@ function M:highlight(buf, win, fname, hl_ns, count_ns)
   end
   local cur_line, cur_col = unpack(vim.api.nvim_win_get_cursor(win))
   fname = fname or vim.api.nvim_buf_get_name(buf)
+  vim.api.nvim_win_call(win, function()
+    vim.cmd("norm! mc")
+  end)
   for row, l in pairs(self.renderer._locations) do
     if l.item then
       local filename = l.item.filename
@@ -846,30 +849,14 @@ function M:highlight(buf, win, fname, hl_ns, count_ns)
         local is_cursor_position = col_the_same and s_row == cur_line
           or (s_row == cur_line and s_col <= cur_col and e_col >= cur_col)
         if is_cursor_position then
-          if e_col == s_col then
-            vim.api.nvim_win_call(win, function()
-              vim.cmd("norm! mce")
-            end)
-            e_col = vim.api.nvim_win_get_cursor(win)[2] + 1
-            vim.api.nvim_win_call(win, function()
-              vim.cmd("norm! `c")
-            end)
-          end
           cur_instance = true
-        else
-          if e_col == s_col then
-            vim.api.nvim_win_call(win, function()
-              vim.cmd("norm! mc")
-            end)
-            vim.api.nvim_win_set_cursor(win, { s_row, s_col })
-            vim.api.nvim_win_call(win, function()
-              vim.cmd("norm! e")
-            end)
-            e_col = vim.api.nvim_win_get_cursor(win)[2] + 1
-            vim.api.nvim_win_call(win, function()
-              vim.cmd("norm! `c")
-            end)
-          end
+        end
+        if e_col == s_col then
+          vim.api.nvim_win_set_cursor(win, { s_row, s_col })
+          vim.api.nvim_win_call(win, function()
+            vim.cmd("norm! e")
+          end)
+          e_col = vim.api.nvim_win_get_cursor(win)[2] + 1
         end
         Util.set_extmark(buf, hl_ns, s_row - 1, s_col, {
           end_row = e_row - 1,
@@ -892,6 +879,9 @@ function M:highlight(buf, win, fname, hl_ns, count_ns)
       end
     end
   end
+  vim.api.nvim_win_call(win, function()
+    vim.cmd("norm! `c")
+  end)
   self:update_virt_count(buf, win, fname, count_ns)
 end
 
