@@ -293,7 +293,14 @@ function M:jump(item, opts)
   -- order of the below seems important with splitkeep=screen
   vim.api.nvim_set_current_win(win)
 
-  local text = vim.api.nvim_buf_get_text(0, item.pos[1] - 1, item.pos[2], item.pos[1] - 1, item.pos[2] + 1, {})[1]
+  local text ---@type string
+  local ok, texts =
+    pcall(vim.api.nvim_buf_get_text, 0, item.pos[1] - 1, item.pos[2], item.pos[1] - 1, item.pos[2] + 1, {})
+  if ok then
+    text = texts[1]
+  else
+    return
+  end
   local col = item.pos[2]
   if text == " " then
     local a
