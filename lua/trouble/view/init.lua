@@ -833,64 +833,67 @@ function M:update_cur_highlight(buf, win, fname, ns, count_ns)
 end
 
 function M:highlight(buf, win, fname, hl_ns, count_ns)
-  hl_ns = hl_ns or self.ns
-  count_ns = count_ns or self.count_ns
-  buf = buf or 0
-  win = win or 0
-  if _G.pre_gitsigns_qf_operation ~= "" then
-    return
-  end
-  local cur_line, cur_col = unpack(vim.api.nvim_win_get_cursor(win))
-  fname = fname or vim.api.nvim_buf_get_name(buf)
-  vim.api.nvim_win_call(win, function()
-    vim.cmd("norm! mc")
-  end)
-  for row, l in pairs(self.renderer._locations) do
-    if l.item then
-      local filename = l.item.filename
-      if filename == fname then
-        local s_pos = l.item.pos
-        local e_pos = l.item.end_pos
-        local s_row, s_col, e_row, e_col = s_pos[1], s_pos[2], e_pos[1], e_pos[2]
-        local cur_instance
-        local col_the_same = s_col == e_col
-        local is_cursor_position = col_the_same and s_row == cur_line
-          or (s_row == cur_line and s_col <= cur_col and e_col >= cur_col)
-        if is_cursor_position then
-          cur_instance = true
-        end
-        if e_col == s_col then
-          vim.api.nvim_win_set_cursor(win, { s_row, s_col })
-          vim.api.nvim_win_call(win, function()
-            vim.cmd("norm! e")
-          end)
-          e_col = vim.api.nvim_win_get_cursor(win)[2] + 1
-        end
-        Util.set_extmark(buf, hl_ns, s_row - 1, s_col, {
-          end_row = e_row - 1,
-          end_col = e_col,
-          hl_group = "Search",
-          hl_eol = false,
-          strict = false,
-          priority = 1500,
-        })
-        if cur_instance then
+  -- Pervent cursor error
+  pcall(function(...)
+    hl_ns = hl_ns or self.ns
+    count_ns = count_ns or self.count_ns
+    buf = buf or 0
+    win = win or 0
+    if _G.pre_gitsigns_qf_operation ~= "" then
+      return
+    end
+    local cur_line, cur_col = unpack(vim.api.nvim_win_get_cursor(win))
+    fname = fname or vim.api.nvim_buf_get_name(buf)
+    vim.api.nvim_win_call(win, function()
+      vim.cmd("norm! mc")
+    end)
+    for row, l in pairs(self.renderer._locations) do
+      if l.item then
+        local filename = l.item.filename
+        if filename == fname then
+          local s_pos = l.item.pos
+          local e_pos = l.item.end_pos
+          local s_row, s_col, e_row, e_col = s_pos[1], s_pos[2], e_pos[1], e_pos[2]
+          local cur_instance
+          local col_the_same = s_col == e_col
+          local is_cursor_position = col_the_same and s_row == cur_line
+            or (s_row == cur_line and s_col <= cur_col and e_col >= cur_col)
+          if is_cursor_position then
+            cur_instance = true
+          end
+          if e_col == s_col then
+            vim.api.nvim_win_set_cursor(win, { s_row, s_col })
+            vim.api.nvim_win_call(win, function()
+              vim.cmd("norm! e")
+            end)
+            e_col = vim.api.nvim_win_get_cursor(win)[2] + 1
+          end
           Util.set_extmark(buf, hl_ns, s_row - 1, s_col, {
             end_row = e_row - 1,
             end_col = e_col,
-            hl_group = "CurSearch",
+            hl_group = "Search",
             hl_eol = false,
             strict = false,
-            priority = 1600,
+            priority = 1500,
           })
+          if cur_instance then
+            Util.set_extmark(buf, hl_ns, s_row - 1, s_col, {
+              end_row = e_row - 1,
+              end_col = e_col,
+              hl_group = "CurSearch",
+              hl_eol = false,
+              strict = false,
+              priority = 1600,
+            })
+          end
         end
       end
     end
-  end
-  vim.api.nvim_win_call(win, function()
-    vim.cmd("norm! `c")
+    vim.api.nvim_win_call(win, function()
+      vim.cmd("norm! `c")
+    end)
+    self:update_virt_count(buf, win, fname, count_ns)
   end)
-  self:update_virt_count(buf, win, fname, count_ns)
 end
 
 -- render the results
