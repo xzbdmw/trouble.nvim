@@ -783,9 +783,15 @@ function M:update_virt_count(buf, win, fname, count_ns)
   if count ~= nil and index ~= nil and total_count ~= nil and hit then
     local virt_text
     if count == total_count then
-      virt_text = { { "[" .. index .. "/" .. count .. "]", "illuminatedH" } }
+      virt_text =
+        { { "[" .. index, "illuminatedH" }, { " of ", "illuminatedHItalic" }, { count .. "]", "illuminatedH" } }
     else
-      virt_text = { { "[" .. index .. "/" .. count .. "]", "illuminatedH" }, { " " .. total_count, "CmpGhostText" } }
+      virt_text = {
+        { "[" .. index, "illuminatedH" },
+        { " of ", "illuminatedHItalic" },
+        { count .. "]", "illuminatedH" },
+        { " " .. total_count, "Comment" },
+      }
     end
     vim.api.nvim_buf_set_extmark(buf, self.count_ns, cur_line - 1, 0, {
       virt_text = virt_text,
