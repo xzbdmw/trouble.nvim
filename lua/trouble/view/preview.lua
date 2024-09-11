@@ -139,17 +139,16 @@ function M.open(view, item, opts)
   end
 
   _G.win_view = vim.api.nvim_win_call(M.preview.win, vim.fn.winsaveview)
-  vim.defer_fn(function()
-    ---@diagnostic disable-next-line: undefined-field
-    pcall(_G.indent_update, M.preview.win)
-    require("treesitter-context").context_force_update(M.preview.buf, M.preview.win, true)
+  pcall(function(...)
     vim.defer_fn(function()
-      ---@diagnostic disable-next-line: undefined-field
-      pcall(_G.update_indent, true, M.preview.win)
-      ---@diagnostic disable-next-line: undefined-field
-      pcall(_G.indent_update, M.preview.win)
-    end, 20)
-  end, 40)
+      _G.indent_update(M.preview.win)
+      require("treesitter-context").context_force_update(M.preview.buf, M.preview.win, true)
+      vim.defer_fn(function()
+        _G.update_indent(true, M.preview.win)
+        _G.indent_update(M.preview.win)
+      end, 20)
+    end, 40)
+  end)
   return item
 end
 
