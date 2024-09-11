@@ -230,6 +230,9 @@ end
 ---@param opts {path?:string, buf?: number, rows?: number[]}
 ---@return table<number, string>?
 function M.get_lines(opts)
+  if opts.buf and (not vim.api.nvim_buf_is_valid(opts.buf)) then
+    opts.buf = nil
+  end
   if opts.buf then
     local uri = vim.uri_from_bufnr(opts.buf)
 
