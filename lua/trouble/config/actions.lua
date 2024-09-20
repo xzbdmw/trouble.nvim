@@ -100,14 +100,10 @@ local M = {
     end
   end,
   tab = function(self, ctx)
-    if ctx.item then
-      self:jump(ctx.item)
-      require("treesitter-context").close_all()
-    elseif ctx.node then
-      local Preview = require("trouble.view.preview")
-      Preview:close()
-      require("config.utils").normal_tab()
-    end
+    require("treesitter-context").close_all()
+    local Preview = require("trouble.view.preview")
+    Preview:close()
+    require("config.utils").normal_tab()
   end,
   jump = function(self, ctx)
     if ctx.item then
