@@ -141,12 +141,16 @@ function M.open(view, item, opts)
   _G.win_view = vim.api.nvim_win_call(M.preview.win, vim.fn.winsaveview)
   pcall(function(...)
     vim.defer_fn(function()
-      _G.indent_update(M.preview.win)
-      require("treesitter-context").context_force_update(M.preview.buf, M.preview.win, true)
-      vim.defer_fn(function()
-        _G.update_indent(true, M.preview.win)
+      if M.preview ~= nil then
         _G.indent_update(M.preview.win)
-      end, 20)
+        require("treesitter-context").context_force_update(M.preview.buf, M.preview.win, true)
+        vim.defer_fn(function()
+          if M.preview ~= nil then
+            _G.update_indent(true, M.preview.win)
+            _G.indent_update(M.preview.win)
+          end
+        end, 20)
+      end
     end, 40)
   end)
   return item
