@@ -38,6 +38,7 @@ M.MOVING_DELAY = 1000
 
 M.ns = vim.api.nvim_create_namespace("trouble.highlight")
 M.count_ns = vim.api.nvim_create_namespace("trouble.count_virt_text")
+M.fake_ns = vim.api.nvim_create_namespace("visual_range")
 
 local uv = vim.loop or vim.uv
 
@@ -642,6 +643,7 @@ function M:close()
   for _, buf in ipairs(vim.api.nvim_list_bufs()) do
     pcall(vim.api.nvim_buf_clear_namespace, buf, self.ns, 0, -1)
     pcall(vim.api.nvim_buf_clear_namespace, buf, self.count_ns, 0, -1)
+    pcall(vim.api.nvim_buf_clear_namespace, buf, self.fake_ns, 0, -1)
   end
   return self
 end
@@ -833,6 +835,20 @@ function M:update_cur_highlight(buf, win, fname, ns, count_ns)
         strict = false,
         priority = 1501,
       })
+      if e_row > s_row then
+        for i = s_row, e_row do
+          if i == s_row and s_col > 0 then
+            goto continue
+          end
+          vim.api.nvim_buf_set_extmark(0, M.fake_ns, i, 0, {
+            end_row = i + 1,
+            strict = false,
+            priority = 1,
+            sign_text = " ",
+          })
+          ::continue::
+        end
+      end
     end
   end
   self:update_virt_count(buf, win, fname, count_ns)
@@ -891,6 +907,20 @@ function M:highlight(buf, win, fname, hl_ns, count_ns)
               strict = false,
               priority = 1600,
             })
+          end
+          if e_row > s_row then
+            for i = s_row - 1, e_row - 1 do
+              if i == s_row - 1 and s_col > 0 then
+                goto continue
+              end
+              vim.api.nvim_buf_set_extmark(0, M.fake_ns, i, 0, {
+                end_row = i + 1,
+                strict = false,
+                priority = 1,
+                sign_text = " ",
+              })
+              ::continue::
+            end
           end
         end
       end
@@ -954,6 +984,7 @@ function M:render()
   end)
   pcall(vim.api.nvim_buf_clear_namespace, 0, self.ns, 0, -1)
   pcall(vim.api.nvim_buf_clear_namespace, 0, self.count_ns, 0, -1)
+  pcall(vim.api.nvim_buf_clear_namespace, 0, self.fake_ns, 0, -1)
   self:highlight()
   if self.opts.follow and self:follow() then
     return
