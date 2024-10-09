@@ -432,7 +432,7 @@ function M:move_to_prev_in_main_window(opts)
         local s_row, s_col, e_row, e_col = s_pos[1], s_pos[2], e_pos[1], e_pos[2]
         local text = vim.api.nvim_buf_get_text(0, item.pos[1] - 1, item.pos[2], item.pos[1] - 1, item.pos[2] + 1, {})[1]
         local col = item.pos[2]
-        if text == " " then
+        if text == " " or text == "\t" then
           local a
           a, s_col = vim.fn.getline(item.pos[1]):find("^%s*")
         end
