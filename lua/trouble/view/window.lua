@@ -338,9 +338,6 @@ function M:open()
   end
   self:close()
   self:mount()
-  if vim.v.hlsearch ~= 0 then
-    vim.cmd("nohlsearch")
-  end
   vim.api.nvim_exec_autocmds("User", {
     pattern = "TroubleOpen",
     data = require("trouble.api").last_mode,

@@ -303,7 +303,7 @@ function M:jump(item, opts)
     return
   end
   local col = item.pos[2]
-  if text == " " then
+  if text == " " or text == "\t" then
     local a
     a, col = vim.fn.getline(item.pos[1]):find("^%s*")
   end
