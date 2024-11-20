@@ -930,6 +930,9 @@ function M:highlight(buf, win, fname, hl_ns, count_ns)
     end)
     self:update_virt_count(buf, win, fname, count_ns)
   end)
+  vim.api.nvim_exec_autocmds("User", {
+    pattern = "SatelliteSearch",
+  })
 end
 
 -- render the results
