@@ -643,6 +643,8 @@ function M:close()
   for _, buf in ipairs(vim.api.nvim_list_bufs()) do
     pcall(vim.api.nvim_buf_clear_namespace, buf, self.ns, 0, -1)
     pcall(vim.api.nvim_buf_clear_namespace, buf, self.count_ns, 0, -1)
+    vim.b.search_winbar = ""
+    require("config.utils").refresh_search_winbar()
     pcall(vim.api.nvim_buf_clear_namespace, buf, self.fake_ns, 0, -1)
   end
   return self
@@ -800,6 +802,15 @@ function M:update_virt_count(buf, win, fname, count_ns)
       virt_text_pos = "eol",
       hl_mode = "combine",
     })
+    vim.b.search_winbar = "%#HlSearchLensCountNoBg#"
+      .. " ["
+      .. index
+      .. "%#HlSearchLensCountItalicNoBg#"
+      .. " of "
+      .. "%#HlSearchLensCountNoBg#"
+      .. count
+      .. "]"
+    require("config.utils").refresh_search_winbar()
   end
 end
 
