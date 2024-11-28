@@ -673,7 +673,7 @@ function M:update()
   local is_open = self.win:valid()
   local count = self:count()
 
-  if count == 0 and is_open and self.opts.auto_close then
+  if count == 0 and is_open and self.opts.auto_close and self.opts.desc ~= "diagnostics" then
     return self:close()
   end
 
