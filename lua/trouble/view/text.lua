@@ -178,7 +178,7 @@ function M:render(buf)
   local changetick = vim.b[buf].changetick
 
   vim.schedule(function()
-    if vim.b[buf].changetick ~= changetick then
+    if vim.b[buf].changetick ~= changetick or not vim.api.nvim_buf_is_valid(buf) then
       return
     end
     require("trouble.view.treesitter").attach(buf, regions)
